@@ -1,9 +1,9 @@
-name: Ecom Website
+name: Deploy to S3
 
 on:
   push:
     branches:
-      - main  # Deploy only on main branch push
+      - main
 
 jobs:
   deploy:
@@ -18,17 +18,28 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1 # change to your region
+          aws-region: us-east-1
 
-      - name: Sync files to S3
+      - name: Sync HTML, CSS, JS to S3 with correct MIME types
         run: |
+          # Upload HTML files
+          find . -type f -name "*.html" ! -path "./.github/*" \
+            -exec aws s3 cp {} s3://ecom-website46/{} --region us-east-1 --content-type text/html \;
+
+          # Upload CSS files
+          find . -type f -name "*.css" ! -path "./.github/*" \
+            -exec aws s3 cp {} s3://ecom-website46/{} --region us-east-1 --content-type text/css \;
+
+          # Upload JS files
+          find . -type f -name "*.js" ! -path "./.github/*" \
+            -exec aws s3 cp {} s3://ecom-website46/{} --region us-east-1 --content-type application/javascript \;
+
+          # Upload other files (images, etc.) without forcing content-type
           aws s3 sync . s3://ecom-website46 \
-  --region us-east-1 \
-  --exclude ".git/*" \
-  --delete
-
-
-      - name: Set correct MIME types
-        run: |
-          find . -type f -name "*.css" -exec aws s3 cp {} s3://ecom-website64/{} --content-type text/css --acl public-read \;
-          find . -type f -name "*.js" -exec aws s3 cp {} s3://ecom-website64/{} --content-type application/javascript --acl public-read \;
+            --region us-east-1 \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "*.html" \
+            --exclude "*.css" \
+            --exclude "*.js" \
+            --delete
